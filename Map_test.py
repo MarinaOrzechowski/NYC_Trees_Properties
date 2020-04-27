@@ -192,7 +192,7 @@ def display_map(selector, figure):
             text=df_trees_properties["hover"],
             type="scattermapbox",
             hoverinfo="text",
-            marker=dict(size=5, color="white", opacity=0.3),
+            marker=dict(size=5, color="white", opacity=0),
         )
     ]
 
@@ -220,7 +220,7 @@ def display_map(selector, figure):
                 ay=0,
                 arrowwidth=5,
                 arrowhead=0,
-                bgcolor=colors['background'],
+                bgcolor="#1f2630",
                 font=dict(color=colors['text']),
             )
         )
