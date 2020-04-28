@@ -1,28 +1,25 @@
 import sys
-import socketserver
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly.graph_objects as go
 
 import os
 import pathlib
 import re
 
-from flask import Flask, request
-
 import pandas as pd
 from dash.dependencies import Input, Output, State
 import cufflinks as cf
-from chart_studio.api.v2.utils import request
 
 
+# Initialize app
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
 app = dash.Dash(
     __name__, external_stylesheets=external_stylesheets)
 
+server = app.server
 
+# Mapbox info
 mapbox_access_token = 'pk.eyJ1IjoibWlzaGtpY2UiLCJhIjoiY2s5MG94bWRoMDQxdjNmcHI1aWI1YnFkYyJ9.eFsHqEMYY7qxa0Pb9USCtQ'
 mapbox_style = "mapbox://styles/mishkice/ck98qopeo05k21ipc1atfdn8h"
 
@@ -34,6 +31,9 @@ df_trees_properties = pd.read_csv(
     os.path.join(APP_PATH, os.path.join(
         "data", "Trees_Properties_With_Centroids.csv"))
 )
+
+df_trees_properties = df_trees_properties[(
+    df_trees_properties['avg.landprice_thous$/acre'] > 0) & (df_trees_properties['avg.landprice_thous$/acre'] < 1000)]
 
 BINS = [
     "0-500",
@@ -62,7 +62,6 @@ DEFAULT_COLORSCALE = [
 ]
 DEFAULT_OPACITY = 0.8
 
-
 colors = {
     'background': '#092a35',
     'text': '#658525',
@@ -71,116 +70,144 @@ colors = {
     'chart': ['#27496d', '#00909e', '#4d4c7d']
 }
 
-layout_map = dict(
-    autosize=True,
-    height=500,
-    font=dict(color=colors['text']),
-    titlefont=dict(color=colors['text'], size='14'),
-    hovermode="closest",
-    plot_bgcolor=colors['background'],
-    paper_bgcolor=colors['background'],
-    legend=dict(font=dict(size=10), orientation='h'),
-    title='Empty map',
-    mapbox=dict(
-        accesstoken=mapbox_access_token,
-        style="mapbox://styles/mishkice/ck98qopeo05k21ipc1atfdn8h",
-        center=dict(
-            lon=-73.91251,
-            lat=40.7342
-        ),
-        zoom=10,
-    ))
-
-
+# App layout
 app.layout = html.Div(
-    html.Div(style={'backgroundColor': colors['background']}, children=[
-
-        html.Div([
-            html.H1(
-                children='NYC Trees & Properties ',
-                style={
-                    'textAlign': 'center',
-                    'color': colors['text'],
-                    'paddingTop':30,
-                    'paddingBottom': 30
-                })
-        ], className='row'),
-
+    id="root",
+    children=[
         html.Div(
-            [
-                html.Div(
-                    [
-                        dcc.Dropdown(
-                            id='choice',
-                            options=[
-                                {'label': 'trees/sq.mile & properties/sq.mile',
-                                    'value': 'trees_properties'},
-                                {'label': 'trees/sq.mile & area of neighborhood',
-                                    'value': 'trees_area'},
-                            ],
-                            placeholder='Select features',
-                            style={
-                                'color': colors['text'], 'backgroundColor': colors['background']}
+            id="header",
+            children=[
+                html.Img(id="logo", src=app.get_asset_url(
+                    "tree_house_image.png")),
+                html.H1(children='NYC Trees & Properties ',
+                        style={
+                            'textAlign': 'center',
+                            'color': colors['text'],
+                            'paddingTop':30,
+                            'paddingBottom': 30
+                        }
                         ),
-                        html.Div(id='dd-output-container')
-                    ],
-                    className='six columns',
-                    style={'marginTop': '10', 'marginLeft': 20,
-                           'color': colors['text']}
-                ),
-            ], className="row"
+            ],
         ),
-
-        html.Div([
-            html.Div([
-                dcc.Graph(
-                    id='map_graph',
-                    figure=dict(
-                        data=[
-                            dict(
-                                lat=df_trees_properties["center"][1],
-                                lon=df_trees_properties["center"][0],
-                                text=df_trees_properties["hover"],
-                                type="scattermapbox",
-                            )
-                        ],
-                        layout=dict(
-                            mapbox=dict(
-                                layers=[],
-                                accesstoken=mapbox_access_token,
-                                style=mapbox_style,
-                                center=dict(
-                                    lat=40.7342,
-                                    lon=-73.91251
-                                ),
-                                pitch=0,
-                                zoom=10,
-                            ),
-                            autosize=True,
+        html.Div(
+            id="app-container",
+            children=[
+                html.Div(
+                    id="left-column",
+                    children=[
+                        html.Div(
+                            id="slider-container",
+                            children=[
+                                dcc.RadioItems(
+                                    id='choiceMap',
+                                    options=[
+                                        {'label': 'Trees/sq.mile',
+                                         'value': 'Trees/sq.mile'},
+                                        {'label': 'Avg land price',
+                                         'value': 'Avg land price'},
+                                    ],
+                                    value='Trees/sq.mile',
+                                    labelStyle={
+                                        'color': colors['text'], 'backgroundColor': colors['background'],
+                                        'display': 'inline-block',
+                                        'paddingRight': 10}
+                                )
+                            ],
                         ),
-                    ),
-                )], className='six columns'),
-
-            html.Div([
-                html.Div([
-                    dcc.Graph(
-                        id='right_graph'
-                    )
-
-                ], className='row')
-            ], className='six columns')
-        ], className='row')
-    ]))
-
-##################################################################
-# map part
-##################################################################
+                        html.Div(
+                            id="map-container",
+                            children=[
+                                html.P(
+                                    "Choropleth Map of {0}".format(
+                                        "Trees/sq.mile"
+                                    ),
+                                    id="mapTitle",
+                                ),
+                                ##########################################
+                                dcc.Graph(
+                                    id="mapGraph",
+                                    figure=dict(
+                                        data=[
+                                            dict(
+                                                lat=df_trees_properties["center"][1],
+                                                lon=df_trees_properties["center"][0],
+                                                text=df_trees_properties["hover"],
+                                                type="scattermapbox",
+                                            )
+                                        ],
+                                        layout=dict(
+                                            mapbox=dict(
+                                                layers=[],
+                                                accesstoken=mapbox_access_token,
+                                                style=mapbox_style,
+                                                center=dict(
+                                                    lat=40.7342, lon=-73.91251
+                                                ),
+                                                pitch=0,
+                                                zoom=10,
+                                            ),
+                                            autosize=True,
+                                        ),
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+                html.Div(
+                    id="graph-container",
+                    children=[
+                        html.P(id="chart-selector", children="Select chart:"),
+                        dcc.Dropdown(
+                            options=[
+                                {
+                                    "label": "Scatterplot of Trees/sq.mile and Properties/sq.mile",
+                                    "value": "trees_properties_sqmile",
+                                },
+                                {
+                                    "label": "Scatterplot of Trees/sq.mile and Areas sizes",
+                                    "value": "trees_areas",
+                                },
+                                {
+                                    "label": "PieChart of Tree Speices ",
+                                    "value": "tree_speices",
+                                },
+                                {
+                                    "label": "Barchart of Avg Land Prices ",
+                                    "value": "land_price",
+                                },
+                                {
+                                    "label": "Barchart of Trees/sq.mile",
+                                    "value": "trees_per_area",
+                                },
+                            ],
+                            value="trees_properties_sqmile",
+                            id="choiceRightGraph",
+                        ),
+                        dcc.Graph(
+                            id="rightGraph",
+                            figure=dict(
+                                data=[dict(x=0, y=0)],
+                                layout=dict(
+                                    paper_bgcolor="#F4F4F8",
+                                    plot_bgcolor="#F4F4F8",
+                                    autofill=True,
+                                    margin=dict(t=75, r=50, b=100, l=50),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ],
+        ),
+    ],
+)
 
 
 @app.callback(
-    Output("map_graph", "figure"),
-    [Input("choice", "value")],
-    [State("map_graph", "figure")],
+    Output("mapGraph", "figure"),
+    [Input("choiceMap", "value")],
+    [State("mapGraph", "figure")],
 )
 def display_map(selector, figure):
     cm = dict(zip(BINS, DEFAULT_COLORSCALE))
@@ -200,9 +227,9 @@ def display_map(selector, figure):
         dict(
             showarrow=False,
             align="right",
-            text="Trees/sq.mile",
+            #text="<b>Age-adjusted death rate<br>per county per year</b>",
             font=dict(color="#2cfec1"),
-            bgcolor=colors['background'],
+            bgcolor="#1f2630",
             x=0.95,
             y=0.95,
         )
@@ -221,7 +248,7 @@ def display_map(selector, figure):
                 arrowwidth=5,
                 arrowhead=0,
                 bgcolor="#1f2630",
-                font=dict(color=colors['text']),
+                font=dict(color="#2cfec1"),
             )
         )
 
@@ -245,7 +272,7 @@ def display_map(selector, figure):
         hovermode="closest",
         margin=dict(r=0, l=0, t=0, b=0),
         annotations=annotations,
-        dragmode="lasso",
+        clickmode="select",
     )
 
     base = "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/"
@@ -256,36 +283,77 @@ def display_map(selector, figure):
             type="fill",
             color=cm[bin],
             opacity=DEFAULT_OPACITY,
-            # CHANGE THIS
             fill=dict(outlinecolor="#afafaf"),
         )
         layout["mapbox"]["layers"].append(geo_layer)
 
     fig = dict(data=data, layout=layout)
     return fig
-################################################################################################################
+
+
+@app.callback(Output("mapTitle", "children"),
+              [Input("choiceMap", "value")])
+def update_map_title(choiceMap):
+    return "Choropleth Map of {0}".format(
+        choiceMap
+    )
 
 
 @app.callback(
-    dash.dependencies.Output('right_graph', 'figure'),
-    [dash.dependencies.Input('choice', 'value')])
-def update_image_src(selector):
+    Output("rightGraph", "figure"),
+    [
+        Input("mapGraph", "selectedData"),
+        Input("choiceRightGraph", "value"),
+        #Input("choiceMap", "value"),
+    ],
+)
+def display_selected_data(selectedData, choiceRG):
+    if choiceRG != None:
+        point = selectedData["points"]
+        ntaname = str(point["text"].split("<br>")[0])
+        neighborhood = df_trees_properties[df_trees_properties["ntaname"].isin(
+            ntaname)]
+
     title_x = ''
     title_y = ''
     title = ''
     data = []
-    if selector == None or selector == 'trees_properties':
-        data.append({'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF', 'marker': {
+    if choiceRG == None or choiceRG == 'land_price':
+        data.append({'x': df_trees_properties['ntaname'],
+                     'y': df_trees_properties['avg.landprice_thous$/acre'],
+                     'type': 'bar',
+                     'marker': {
+                    'color': colors['chart'][0], 'line': {'color': colors['border'], 'width': 1}}})
+        title_x = 'neighborhoods'
+        title_y = 'Avg Land Prices (thousands$/acre)'
+        title = 'Barchart of Avg Land Prices by Neighborhood'
+    elif choiceRG == 'trees_per_area':
+        data.append({'x': df_trees_properties['ntaname'],
+                     'y': df_trees_properties['trees/sq.mile'],
+                     'type': 'bar',
+                     'marker': {
+                    'color': colors['chart'][0], 'line': {'color': colors['border'], 'width': 1}}})
+        title_x = 'neighborhoods'
+        title_y = 'Trees/sq.mile'
+        title = 'Barchart of Number of Trees/sq.mile'
+    elif choiceRG == 'trees_properties_sqmile':
+        data.append({'x': df_trees_properties['trees/sq.mile'],
+                     'y': df_trees_properties['properties/sq.mile'],
+                     'type': 'scatterplot',
+                     'marker': {
                     'color': colors['chart'][0], 'line': {'color': colors['border'], 'width': 1}}})
         title_x = 'Trees/sq.mile'
         title_y = 'Properties/sq.mile'
-        title = 'Trees/sq.mile & Properties/sq.mile'
-    if selector == 'trees_area':
-        data.append({'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'Montréal', 'marker': {
+        title = 'Scatterplot of Properties/sq.mile'
+    elif choiceRG == 'trees_areas':
+        data.append({'x': df_trees_properties['area'],
+                     'y': df_trees_properties['trees/sq.mile'],
+                     'type': 'scatterplot',
+                     'marker': {
                     'color': colors['chart'][0], 'line': {'color': colors['border'], 'width': 1}}})
-        title_x = 'Trees/sq.mile'
-        title_y = 'Areas of neighborhoods'
-        title = 'Trees/sq.mile & Areas of Neighborhoods'
+        title_x = 'Area (sq.mile)'
+        title_y = 'Trees/sq.mile'
+        title = 'Scatterplot of Trees/sq.mile and Areas sizes'
     figure = {
         'data': data,
         'layout': {
@@ -313,6 +381,5 @@ def update_image_src(selector):
     return figure
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     app.run_server(debug=True)
