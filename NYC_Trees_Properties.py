@@ -9,7 +9,6 @@ import re
 
 import pandas as pd
 from dash.dependencies import Input, Output, State
-import cufflinks as cf
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
