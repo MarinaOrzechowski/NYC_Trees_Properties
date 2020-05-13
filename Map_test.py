@@ -2,6 +2,9 @@ import sys
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import plotly.express as px
+import plotly.graph_objects as go
+
 
 import os
 import pathlib
@@ -32,6 +35,9 @@ df_trees_properties = pd.read_csv(
 df_trees_properties_boro = pd.read_csv(os.path.join(APP_PATH, os.path.join(
     "data", "Trees_Properties_With_Centroids_Boro.csv")))
 
+df_species = pd.read_csv(os.path.join(
+    APP_PATH, os.path.join("data", "GroupedTreesDataSpecies.csv")))
+
 
 BINS = [
     "0-500",
@@ -54,6 +60,21 @@ BINSB = [
     "3201-3500"
 ]
 
+BINS_P = [
+    "0-20",
+    "21-40",
+    "41-60",
+    "61-80",
+    "81-100",
+    "above 100"
+]
+BINSB_P = [
+    "0-50",
+    "51-100",
+    "151-200",
+    "above 200"
+]
+
 DEFAULT_COLORSCALE = [
     "#f2fffb",
     "#98ffe0",
@@ -74,12 +95,29 @@ DEFAULT_COLORSCALEB = [
     "#10523e",
 ]
 
+DEFAULT_COLORSCALE_P = [
+    "#feedde",
+    "#fdd0a2",
+    "#fdae6b",
+    "#fd8d3c",
+    "#e6550d",
+    "#a63603"
+]
+
+DEFAULT_COLORSCALEB_P = [
+    "#feedde",
+    "#fdbe85",
+    "#fd8d3c",
+    "#e6550d",
+    "#a63603",
+]
+
 DEFAULT_OPACITY = 0.5
 
 
 colors = {
     'background': '#092a35',
-    'text': '#658525',
+    'text': '#769c2a',
     'text2': '#f8eeb4',
     'border': '#dae1e7',
     'chart': ['#27496d', '#00909e', '#4d4c7d']
@@ -92,8 +130,7 @@ def find_colorscale_by_boro(df):
     return color_by_boro
 
 
-# colorscale_by_boro = [[0, '#6a2c70'], [1, '#b83b5e'],
-#                      [2, '#f08a5d'], [3, '#f9ed69'], [4, '#3ec1d3']]
+colorscale_by_boro = ['#6a2c70', '#b83b5e', '#f08a5d', '#f9ed69', '#3ec1d3']
 
 app.layout = html.Div(
     html.Div(style={'backgroundColor': colors['background']}, children=[
@@ -138,47 +175,23 @@ app.layout = html.Div(
                     style={'marginTop': '10', 'marginLeft': 20,
                            'color': colors['text']}
                 ),
-
                 html.Div(
                     [
-                        dcc.Dropdown(
-                            options=[
-                                {
-                                    "label": "Scatterplot of Trees/sq.mile and Properties/sq.mile",
-                                    "value": "trees_properties_sqmile",
-                                },
-                                {
-                                    "label": "Scatterplot of Trees/sq.mile and Areas sizes",
-                                    "value": "trees_areas",
-                                },
-                                {
-                                    "label": "PieChart of Tree Speices ",
-                                    "value": "tree_speices",
-                                },
-                                {
-                                    "label": "Barchart of Avg Land Prices ",
-                                    "value": "land_price",
-                                },
-                                {
-                                    "label": "Barchart of Trees/sq.mile",
-                                    "value": "trees_per_area",
-                                },
-                            ],
-                            value=None,
-                            id="choiceRightGraph",
-                            style={
-                                'backgroundColor': colors['background'],
-                                'color': colors['text']
-                            }
-                        )
+                        html.Div([
+                            html.H6(
+                                children="Pairplot Graph of Trees&Properties attributes")
+                        ], style={'display': 'inline-block', 'marginLeft': 200})
+
                     ],
                     className='six columns',
-                    style={'marginTop': '10', 'marginLeft': 20,
-                           'backgroundColor': colors['background'],
-                           'color': colors['text']}
+                    style={'marginTop': 0, 'marginLeft': 20,
+                           'color': colors['text'],
+                           'fontsize': 14,
+                           'display': 'inline-block'}
                 )
             ], className="row"
         ),
+
         html.Div(
             [
                 html.Div(
@@ -205,10 +218,10 @@ app.layout = html.Div(
 
                     ],
                     className='six columns',
-                    style={'marginTop': '10', 'marginLeft': 20,
+                    style={'marginTop': 0, 'marginLeft': 20,
                            'color': colors['text'],
                            'display': 'inline-block'}
-                ),
+                )
             ], className="row"
         ),
 
@@ -240,8 +253,56 @@ app.layout = html.Div(
                             autosize=True,
                         ),
                     ),
-                )], className='six columns', style={'paddingLeft': 20, 'paddingBottom': 10}),
+                )], className='six columns', style={'paddingLeft': 20, 'paddingBottom': 10, 'marginRight': 30, 'marginBottom': 10}),
 
+            html.Div([
+                html.Div([
+                    dcc.Graph(
+                        id='scatter_matrix'
+                    )
+
+                ], className='row')
+            ], className='six columns', style={'marginTop': 0, 'marginLeft': 5, 'paddingTop': 0})
+        ], className='row'),
+
+        html.Div([
+            html.Div(
+                [
+                    dcc.Dropdown(
+                        options=[
+                            {
+                                "label": "Scatterplot of Trees/sq.mile and Properties/sq.mile",
+                                "value": "trees_properties_sqmile",
+                            },
+                            {
+                                "label": "PieChart of Tree Speices ",
+                                "value": "tree_speices",
+                            },
+                            {
+                                "label": "Barchart of Avg Land Prices ",
+                                "value": "land_price",
+                            },
+                            {
+                                "label": "Barchart of Trees/sq.mile",
+                                "value": "trees_per_area",
+                            },
+                        ],
+                        value="tree_speices",
+                        id="choiceRightGraph",
+                        style={
+                            'backgroundColor': colors['background'],
+                            'color': colors['text']
+                        }
+                    )
+                ],
+                className='six columns',
+                style={'marginTop': '20', 'marginLeft': 20, 'paddingRight': 20,
+                       'backgroundColor': colors['background'],
+                       'color': colors['text']}
+            ), ], className='row'),
+
+
+        html.Div([
             html.Div([
                 html.Div([
                     dcc.Graph(
@@ -277,20 +338,37 @@ def display_map(choiceNB, choice_feature, figure):
         )
     ]
 
-    if choiceNB == 'neighborhoods':
+    if choiceNB == 'neighborhoods' and choice_feature == 'Trees/sq.mile':
         bins = BINS
         colorscale = DEFAULT_COLORSCALE
         latitude = df_trees_properties["centerLat"]
         longitude = df_trees_properties["centerLong"]
         hover_text = df_trees_properties["hover"]
-        base = "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/neighborhoods/"
-    else:
+        base = "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/neighborhoods/trees_per_sqmile/"
+
+    elif choiceNB == 'neighborhoods':
+        bins = BINS_P
+        colorscale = DEFAULT_COLORSCALE_P
+        latitude = df_trees_properties["centerLat"]
+        longitude = df_trees_properties["centerLong"]
+        hover_text = df_trees_properties["hover"]
+        base = "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/neighborhoods/land_price/"
+
+    elif choice_feature != 'Avg land price':
         bins = BINSB
         colorscale = DEFAULT_COLORSCALEB
         latitude = df_trees_properties_boro["centerLat"]
         longitude = df_trees_properties_boro["centerLong"]
         hover_text = df_trees_properties_boro["hover"]
-        base = "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/boroughs/"
+        base = "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/boroughs/trees_per_sqmile/"
+
+    else:
+        bins = BINSB_P
+        colorscale = DEFAULT_COLORSCALEB_P
+        latitude = df_trees_properties_boro["centerLat"]
+        longitude = df_trees_properties_boro["centerLong"]
+        hover_text = df_trees_properties_boro["hover"]
+        base = "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/boroughs/land_price/"
 
     cm = dict(zip(bins, colorscale))
     data = [
@@ -358,11 +436,90 @@ def display_map(choiceNB, choice_feature, figure):
         layout["mapbox"]["layers"].append(geo_layer)
 
     fig = dict(data=data, layout=layout)
+
     return fig
 
 
 ######################################################################################################################
+# scattermatrix
+######################################################################################################################
+@app.callback(
+    Output('scatter_matrix', 'figure'),
+    [
+        Input('mapGraph', 'selectedData'),
+        Input('choiceNB', 'value')
+    ])
+def display_selected_data(selectedArea, choiceNB):
 
+    if choiceNB == 'boroughs':
+        df = df_trees_properties_boro
+        title_part = ' boroughs'
+        key = 'borough'
+
+    else:
+        title_part = ' neighborhoods'
+        df = df_trees_properties
+        key = 'ntaname'
+
+    if selectedArea == None:
+        df_selected = df
+    else:
+        points = selectedArea["points"]
+        area_names = [str(point["text"].split("<br")[0]) for point in points]
+        df_selected = df[df[key].isin(area_names)]
+    #df_selected = df_selected[df_selected['avg.landprice_thous$/acre'] < 1000]
+
+    index_vals = df_selected['borough'].astype('category').cat.codes
+    axisd = dict(showline=True,
+                 zeroline=False,
+                 gridcolor='#104752',
+                 #titlefont=dict(color=colors['text'], size=11),
+                 showticklabels=False
+                 )
+
+    layout = go.Layout(
+        dragmode='select',
+
+        margin=dict(l=0, r=0, b=0, t=0, pad=0),
+        autosize=False,
+        hovermode='closest',
+        font=dict(color=colors['text'], size=12),
+        plot_bgcolor=colors['background'],
+        paper_bgcolor=colors['background'],
+        xaxis1=dict(axisd),
+        xaxis2=dict(axisd),
+        xaxis3=dict(axisd),
+        xaxis4=dict(axisd),
+        yaxis1=dict(axisd),
+        yaxis2=dict(axisd),
+        yaxis3=dict(axisd),
+        yaxis4=dict(axisd))
+
+    fig = go.Figure(data=go.Splom(
+        dimensions=[dict(label='trees/sq.mile',
+                         values=df_selected['trees/sq.mile']),
+                    dict(label='avg.landprice($K/A)',
+                         values=df_selected['avg.landprice_thous$/acre']),
+                    dict(label='properties/sq.mile',
+                         values=df_selected['properties/sq.mile']),
+                    ],
+        text=(df_selected[key]+': '+df_selected['borough']
+              if key == 'ntaname' else df_selected[key]),
+        hoverinfo="x+y+text",
+        # showlegend=True,
+        marker=dict(color=index_vals,
+                    showscale=False,  # colors encode categorical variables
+                    line_color='white', line_width=0.5),
+        diagonal=dict(visible=True)
+    ), layout=layout
+    )
+
+    return fig
+
+
+#####################################################################################################################
+# rightGraph callback
+#####################################################################################################################
 
 @app.callback(
     Output('rightGraph', 'figure'),
@@ -393,21 +550,7 @@ def display_selected_data(choiceRG, selectedArea, choiceNB):
     else:
         df_selected = df
 
-    if choiceRG is None or choiceRG == 'scatter_matrix':
-        # data = ################################################################ scatter
-        # matrix data here
-
-        data.append({'x': df_selected.sort_values(by=['avg.landprice_thous$/acre'])[key],
-                     'y': df_selected.sort_values(by=['avg.landprice_thous$/acre'])['avg.landprice_thous$/acre'],
-                     'type': 'bar',
-                     'text': df_selected['hover'],
-                     'marker': {
-                    'color': find_colorscale_by_boro(df_selected.sort_values(by=['avg.landprice_thous$/acre'])), 'opacity': 0.8, 'line': {'color': colors['border'], 'width': 1}}})
-        title_x = title_part
-        title_y = 'Avg Land Prices (thousands$/acre)'
-        title = "Click/click-shift on the map to select areas"
-
-    elif choiceRG == 'land_price':
+    if choiceRG == 'land_price':
         data.append({'x': df_selected.sort_values(by=['avg.landprice_thous$/acre'])[key],
                      'y': df_selected.sort_values(by=['avg.landprice_thous$/acre'])['avg.landprice_thous$/acre'],
                      'type': 'bar',
@@ -443,44 +586,75 @@ def display_selected_data(choiceRG, selectedArea, choiceNB):
         title = 'Scatterplot of Properties/sq.mile and Trees/sq.mile by'+title_part
 
     else:
-        data.append({'x': df_selected['trees/sq.mile'],
-                     'y': df_selected['area'],
-                     'type': 'scatterplot',
-                     'text': df_selected['hover'],
-                     'mode': 'markers',
-                     'marker': {
-                    'color': find_colorscale_by_boro(df_selected.sort_values(by=['trees/sq.mile'])),  'opacity': 0.8,  'line': {'color': colors['border'], 'width': 1}}})
-        title_x = 'Trees/sq.mile'
-        title_y = 'Area (sq.mile)'
-        title = 'Scatterplot of Trees/sq.mile and Areas sizes by ' + title_part
+        if selectedArea != None:
+            # leave only selected areas
+            df_selected = df_species[df_species[key].isin(
+                area_names)].sort_values('spc_per', ascending=False)
+            '''others={'ntaname':'others', 'borough': 'others', 'spc_common': 'others', 'count': df_selected.sum(axis=1)['count']-}
+            df_selected = df_selected.append(ignore_index = True)    '''
+        else:
+            df_selected = df_species.sort_values(
+                'spc_per', ascending=False)
 
-    figure = {
-        'data': data,
-        'layout': {
-            'hovermode': 'closest',
-            'transition': {'duration': 500},
-            'title': title,
-            'plot_bgcolor': colors['background'],
-            'paper_bgcolor': colors['background'],
-            'font': {
-                'color': colors['text2'],
-                'size': 12
+        # find most species with biggest count number, sort in desc order
+        grouped = df_selected.groupby(['spc_common']).sum(
+        ).sort_values('count', ascending=False)
+        total = grouped['count'].sum()
+        # find percent for each type of trees (will remain in desc order)
+        grouped['prc'] = grouped['count']/total*100
+        grouped.reset_index(inplace=True)
+        # add row 'other' which includes info about all species except 5 most frequent
+        grouped = grouped.append({'spc_common': 'other', 'count': total-grouped['count'][:10].sum(
+        ), 'prc': 100 - grouped['prc'][:10].sum()}, ignore_index=True)
+        # sort data again so 'other' row takes correct place
+        grouped = grouped.sort_values('prc', ascending=False)
+
+        piechart = go.Figure(data=[go.Pie(
+            labels=grouped[:11]['spc_common'],
+            values=grouped[:11]['count'],
+        )],
+            layout=go.Layout(
+                paper_bgcolor=colors['background'],
+                plot_bgcolor=colors['background'],
+                font={
+                    'color': colors['text2'],
+                    'size': 14
+                },
+                title='Pie-chart of Tree Species by ' + title_part))
+        piechart.update_traces(hoverinfo='label+value', textinfo='text+percent', opacity=0.9,
+                               marker=dict(colors=px.colors.qualitative.Prism, line=dict(color='#000000', width=1)))
+
+    if choiceRG != 'tree_speices':
+        figure = {
+            'data': data,
+            'layout': {
+                'hovermode': 'closest',
+                'transition': {'duration': 500},
+                'title': title,
+                'plot_bgcolor': colors['background'],
+                'paper_bgcolor': colors['background'],
+                'font': {
+                    'color': colors['text2'],
+                    'size': 12
+                },
+                'xaxis': dict(
+                    title=title_x,
+                    titlefont=dict(
+                        size=14,
+                        color=colors['text2']
+                    )),
+                'yaxis': dict(
+                    title=title_y,
+                    titlefont=dict(
+                        size=14,
+                        color=colors['text2']
+                    )),
             },
-            'xaxis': dict(
-                title=title_x,
-                titlefont=dict(
-                    size=14,
-                    color=colors['text2']
-                )),
-            'yaxis': dict(
-                title=title_y,
-                titlefont=dict(
-                    size=14,
-                    color=colors['text2']
-                )),
-        },
 
-    }
+        }
+    else:
+        figure = piechart
+
     return figure
 
 

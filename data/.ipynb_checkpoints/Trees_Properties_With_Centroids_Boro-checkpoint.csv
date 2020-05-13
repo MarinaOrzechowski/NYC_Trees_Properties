@@ -1,0 +1,6 @@
+,borough,health,trees/sq.mile,avg.landprice_thous$/acre,properties/sq.mile,centerLong,centerLat,area,hover
+0,bronx,13.9,2575.77,56.95,3636.82,-73.8648,40.8448,42.47,bronx<br>trees/sq.mile: 2575.76<br>avg. landprice: 56.95<br>trees health: 13.89/15
+1,brooklyn,13.81,2840.47,37.25,5551.35,-73.957365,40.644899,69.5,brooklyn<br>trees/sq.mile: 2840.46<br>avg. landprice: 37.25<br>trees health: 13.80/15
+2,manhattan,13.46,3307.28,219.83,8028.13,-73.9442,40.772822,22.82,manhattan<br>trees/sq.mile: 3307.27<br>avg. landprice: 219.82<br>trees health: 13.46/15
+3,queens,13.88,2678.57,35.66,4278.41,-73.817642,40.722526,108.1,queens<br>trees/sq.mile: 2678.56<br>avg. landprice: 35.66<br>trees health: 13.87/15
+4,staten island,13.92,2130.84,24.25,2752.21,-74.1502,40.5795,58.69,staten island<br>trees/sq.mile: 2130.84<br>avg. landprice: 24.25<br>trees health: 13.92/15
