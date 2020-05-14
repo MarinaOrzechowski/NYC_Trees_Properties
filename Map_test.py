@@ -26,18 +26,15 @@ mapbox_access_token = 'pk.eyJ1IjoibWlzaGtpY2UiLCJhIjoiY2s5MG94bWRoMDQxdjNmcHI1aW
 mapbox_style = "mapbox://styles/mishkice/ck98qopeo05k21ipc1atfdn8h"
 
 # Load data
-APP_PATH = str(pathlib.Path(__file__).parent.resolve())
 
 df_trees_properties = pd.read_csv(
-    os.path.join(APP_PATH, os.path.join(
-        "data", "Trees_Properties_With_Centroids.csv"))
-)
+    "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/Trees_Properties_With_Centroids.csv")
 
-df_trees_properties_boro = pd.read_csv(os.path.join(APP_PATH, os.path.join(
-    "data", "Trees_Properties_With_Centroids_Boro.csv")))
+df_trees_properties_boro = pd.read_csv(
+    "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/Trees_Properties_With_Centroids_Boro.csv")
 
-df_species = pd.read_csv(os.path.join(
-    APP_PATH, os.path.join("data", "GroupedTreesDataSpecies.csv")))
+df_species = pd.read_csv(
+    "https://raw.githubusercontent.com/MarinaOrzechowski/NYC_Trees_Properties/master/data/GroupedTreesDataSpecies.csv")
 
 # trees neighborhoods bins
 BINS = [
@@ -180,7 +177,7 @@ app.layout = html.Div(
 
                     ],
                     className='six columns',
-                    style={'marginTop': 0, 'marginLeft': 20,
+                    style={'marginTop': 0, 'marginLeft': '2%',
                            'color': colors['text']}
                 ),
                 html.Div(
@@ -188,7 +185,7 @@ app.layout = html.Div(
                         html.Div([
                             html.H6(
                                 children="Pairplot Graph of Trees&Properties attributes")
-                        ], style={'display': 'inline-block', 'marginLeft': 200})
+                        ], style={'display': 'inline-block', 'marginLeft': 100})
 
                     ],
                     className='six columns',
@@ -226,7 +223,7 @@ app.layout = html.Div(
 
                     ],
                     className='six columns',
-                    style={'marginTop': 0, 'marginLeft': 20,
+                    style={'marginTop': 0, 'marginLeft': '2%',
                            'color': colors['text'],
                            'display': 'inline-block'}
                 )
@@ -255,14 +252,13 @@ app.layout = html.Div(
                                     lat=40.7342,
                                     lon=-73.91251
                                 ),
-                                width=1000, height=1500,
                                 pitch=0,
                                 zoom=9,
                             ),
                             autosize=False,
                         ),
                     ),
-                )], className='six columns', style={'paddingLeft': 20, 'paddingBottom': 10, 'marginRight': 50, 'marginBottom': 10}),  # left half ends here
+                )], className='six columns', style={'width': '40%', 'paddingLeft': '2%', 'paddingBottom': 10, 'marginBottom': 10}),  # left half ends here
 
             html.Div([
                 html.Div([
@@ -299,7 +295,7 @@ app.layout = html.Div(
                         }
                     )
 
-                ], className='row', style={'marginTop': '20', 'paddingTop': 30, 'marginLeft': 20, 'paddingRight': 20,
+                ], className='row', style={'marginTop': '20', 'paddingTop': 30,
                                            'backgroundColor': colors['background'],
                                            'color': colors['text']}),
 
@@ -310,9 +306,9 @@ app.layout = html.Div(
 
                 ], className='row')
 
-            ], className='six columns', style={'marginTop': 0, 'marginLeft': 5, 'paddingTop': 0})  # right half ends here
+            ], className='six columns', style={'width': '50%', 'paddingLeft': '3%', 'paddingRight': '1%', 'marginTop': 0, 'paddingTop': 0})  # right half ends here
 
-        ], className='row'),  # big row ends here
+        ], className='row', style={'width': '100%'}),  # big row ends here
     ]))
 
 # callbacks
@@ -322,7 +318,7 @@ app.layout = html.Div(
 ######################################################################################################################
 
 
-@app.callback(
+@ app.callback(
     Output("mapGraph", "figure"),
     [Input("choiceNB", "value"),
      Input("choice_feature", "value")],
@@ -419,7 +415,7 @@ def display_map(choiceNB, choice_feature, figure):
             center=dict(lat=lat, lon=lon),
             zoom=zoom,
         ),
-        width=750, height=900,
+        height=900,
         transition={'duration': 500},
         hovermode="closest",
         margin=dict(r=0, l=0, t=0, b=0),
