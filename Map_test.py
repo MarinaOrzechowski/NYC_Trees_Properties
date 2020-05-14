@@ -1,30 +1,31 @@
+import os
+import pathlib
 import sys
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
 import plotly.graph_objects as go
-
-
-import os
-import pathlib
-import re
-
-import pandas as pd
 from dash.dependencies import Input, Output, State
+
+import statsmodels.api as sm
+from sklearn.preprocessing import StandardScaler
+from scipy.stats import pearsonr, spearmanr
+import numpy as np
+import pandas as pd
+import re
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = dash.Dash(
-    __name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 
 mapbox_access_token = 'pk.eyJ1IjoibWlzaGtpY2UiLCJhIjoiY2s5MG94bWRoMDQxdjNmcHI1aWI1YnFkYyJ9.eFsHqEMYY7qxa0Pb9USCtQ'
 mapbox_style = "mapbox://styles/mishkice/ck98qopeo05k21ipc1atfdn8h"
 
 # Load data
-
 APP_PATH = str(pathlib.Path(__file__).parent.resolve())
 
 df_trees_properties = pd.read_csv(
@@ -38,7 +39,7 @@ df_trees_properties_boro = pd.read_csv(os.path.join(APP_PATH, os.path.join(
 df_species = pd.read_csv(os.path.join(
     APP_PATH, os.path.join("data", "GroupedTreesDataSpecies.csv")))
 
-
+# trees neighborhoods bins
 BINS = [
     "0-500",
     "501-1000",
@@ -51,7 +52,7 @@ BINS = [
     "4001-4500",
     "4501-5000"
 ]
-
+# trees boroughs bins
 BINSB = [
     "2000-2300",
     "2301-2600",
@@ -59,7 +60,7 @@ BINSB = [
     "2901-3200",
     "3201-3500"
 ]
-
+# prices neighborhoods bins
 BINS_P = [
     "0-20",
     "21-40",
@@ -68,6 +69,7 @@ BINS_P = [
     "81-100",
     "above 100"
 ]
+# prices boroughs bins
 BINSB_P = [
     "0-50",
     "51-100",
@@ -75,6 +77,7 @@ BINSB_P = [
     "above 200"
 ]
 
+# trees neighborhoods colors
 DEFAULT_COLORSCALE = [
     "#f2fffb",
     "#98ffe0",
@@ -87,6 +90,7 @@ DEFAULT_COLORSCALE = [
     "#157658",
     "#10523e",
 ]
+# trees boroughs colors
 DEFAULT_COLORSCALEB = [
     "#f2fffb",
     "#59dab2",
@@ -94,7 +98,7 @@ DEFAULT_COLORSCALEB = [
     "#188463",
     "#10523e",
 ]
-
+# prices neighborhoods colors
 DEFAULT_COLORSCALE_P = [
     "#feedde",
     "#fdd0a2",
@@ -103,7 +107,7 @@ DEFAULT_COLORSCALE_P = [
     "#e6550d",
     "#a63603"
 ]
-
+# prices boroughs colors
 DEFAULT_COLORSCALEB_P = [
     "#feedde",
     "#fdbe85",
@@ -112,7 +116,7 @@ DEFAULT_COLORSCALEB_P = [
     "#a63603",
 ]
 
-DEFAULT_OPACITY = 0.5
+DEFAULT_OPACITY = 0.8
 
 
 colors = {
@@ -123,6 +127,8 @@ colors = {
     'chart': ['#27496d', '#00909e', '#4d4c7d']
 }
 
+# function to assign colors to markers by boroughs
+
 
 def find_colorscale_by_boro(df):
     color_by_boro = ['#6a2c70' if row['borough'] == 'manhattan' else '#b83b5e' if row['borough'] == 'brooklyn' else '#f08a5d' if row['borough'] ==
@@ -132,6 +138,8 @@ def find_colorscale_by_boro(df):
 
 colorscale_by_boro = ['#6a2c70', '#b83b5e', '#f08a5d', '#f9ed69', '#3ec1d3']
 
+
+# page layout
 app.layout = html.Div(
     html.Div(style={'backgroundColor': colors['background']}, children=[
 
@@ -172,7 +180,7 @@ app.layout = html.Div(
 
                     ],
                     className='six columns',
-                    style={'marginTop': '10', 'marginLeft': 20,
+                    style={'marginTop': 0, 'marginLeft': 20,
                            'color': colors['text']}
                 ),
                 html.Div(
@@ -224,7 +232,7 @@ app.layout = html.Div(
                 )
             ], className="row"
         ),
-
+        ######################################
         html.Div([
             html.Div([
                 dcc.Graph(
@@ -247,13 +255,14 @@ app.layout = html.Div(
                                     lat=40.7342,
                                     lon=-73.91251
                                 ),
+                                width=1000, height=1500,
                                 pitch=0,
                                 zoom=9,
                             ),
-                            autosize=True,
+                            autosize=False,
                         ),
                     ),
-                )], className='six columns', style={'paddingLeft': 20, 'paddingBottom': 10, 'marginRight': 30, 'marginBottom': 10}),
+                )], className='six columns', style={'paddingLeft': 20, 'paddingBottom': 10, 'marginRight': 50, 'marginBottom': 10}),  # left half ends here
 
             html.Div([
                 html.Div([
@@ -261,13 +270,8 @@ app.layout = html.Div(
                         id='scatter_matrix'
                     )
 
-                ], className='row')
-            ], className='six columns', style={'marginTop': 0, 'marginLeft': 5, 'paddingTop': 0})
-        ], className='row'),
-
-        html.Div([
-            html.Div(
-                [
+                ], className='row'),
+                html.Div([
                     dcc.Dropdown(
                         options=[
                             {
@@ -287,35 +291,34 @@ app.layout = html.Div(
                                 "value": "trees_per_area",
                             },
                         ],
-                        value="tree_speices",
+                        value=None,
                         id="choiceRightGraph",
                         style={
                             'backgroundColor': colors['background'],
                             'color': colors['text']
                         }
                     )
-                ],
-                className='six columns',
-                style={'marginTop': '20', 'marginLeft': 20, 'paddingRight': 20,
-                       'backgroundColor': colors['background'],
-                       'color': colors['text']}
-            ), ], className='row'),
 
+                ], className='row', style={'marginTop': '20', 'paddingTop': 30, 'marginLeft': 20, 'paddingRight': 20,
+                                           'backgroundColor': colors['background'],
+                                           'color': colors['text']}),
 
-        html.Div([
-            html.Div([
                 html.Div([
                     dcc.Graph(
                         id='rightGraph'
                     )
 
                 ], className='row')
-            ], className='six columns')
-        ], className='row')
+
+            ], className='six columns', style={'marginTop': 0, 'marginLeft': 5, 'paddingTop': 0})  # right half ends here
+
+        ], className='row'),  # big row ends here
     ]))
 
+# callbacks
+
 ######################################################################################################################
-# map update
+# map callback
 ######################################################################################################################
 
 
@@ -378,7 +381,7 @@ def display_map(choiceNB, choice_feature, figure):
             text=hover_text,
             type="scattermapbox",
             hoverinfo="text",
-            marker=dict(size=5, color="white", opacity=0),
+            marker=dict(size=5, color="black", opacity=0),
         )
     ]
 
@@ -416,11 +419,12 @@ def display_map(choiceNB, choice_feature, figure):
             center=dict(lat=lat, lon=lon),
             zoom=zoom,
         ),
+        width=750, height=900,
         transition={'duration': 500},
         hovermode="closest",
         margin=dict(r=0, l=0, t=0, b=0),
         annotations=annotations,
-        dragmode="lasso",
+        dragmode="lasso"
     )
 
     for bin in bins:
@@ -441,7 +445,7 @@ def display_map(choiceNB, choice_feature, figure):
 
 
 ######################################################################################################################
-# scattermatrix
+# scattermatrix callback
 ######################################################################################################################
 @app.callback(
     Output('scatter_matrix', 'figure'),
@@ -452,31 +456,119 @@ def display_map(choiceNB, choice_feature, figure):
 def display_selected_data(selectedArea, choiceNB):
 
     if choiceNB == 'boroughs':
-        df = df_trees_properties_boro
+        df_selected = df_trees_properties_boro
         title_part = ' boroughs'
         key = 'borough'
 
     else:
         title_part = ' neighborhoods'
-        df = df_trees_properties
+        df_selected = df_trees_properties
         key = 'ntaname'
 
-    if selectedArea == None:
-        df_selected = df
-    else:
+    font_ann = dict(
+        size=10,
+        color=colors['text']
+    )
+
+    if selectedArea is not None:
         points = selectedArea["points"]
-        area_names = [str(point["text"].split("<br")[0]) for point in points]
-        df_selected = df[df[key].isin(area_names)]
-    #df_selected = df_selected[df_selected['avg.landprice_thous$/acre'] < 1000]
+        area_names = [str(point["text"].split("<br")[0])
+                      for point in points]
+        df_selected = df_selected[df_selected[key].isin(area_names)]
 
     index_vals = df_selected['borough'].astype('category').cat.codes
+    coef_list = []
+
+    # find pearson coeff and p_value for each pair of attributes
+    pairs = [['trees/sq.mile', 'avg.landprice_thous$/acre'], ['trees/sq.mile',
+                                                              'properties/sq.mile'], ['avg.landprice_thous$/acre', 'properties/sq.mile']]
+    flag = True
+    for pair in pairs:
+        if len(df_selected[pair[0]]) >= 2 and len(df_selected[pair[1]]) >= 2:
+            coef_list.append(
+                pearsonr(df_selected[pair[0]], df_selected[pair[1]]))
+        else:
+            flag = False
+    if flag:
+        ann = [
+            dict(
+                x=5000,
+                y=6000,
+                xref="x2",
+                yref="y1",
+                font=font_ann,
+                text="PCC: " +
+                str(round(coef_list[0][0], 2)) + "<br>p: " +
+                ('{:0.1e}'.format(coef_list[0][1])),
+                showarrow=False,
+
+            ),
+            dict(
+                x=6000,
+                y=5000,
+                xref="x1",
+                yref="y2",
+                font=font_ann,
+                text="PCC: " +
+                str(round(coef_list[0][0], 2)) + "<br>p: " +
+                ('{:0.1e}'.format(coef_list[0][1])),
+                showarrow=False,
+            ),
+            dict(
+                x=14000,
+                y=6000,
+                xref="x3",
+                yref="y1",
+                font=font_ann,
+                text="PCC: " +
+                str(round(coef_list[1][0], 2)) + "<br>p: " +
+                ('{:0.1e}'.format(coef_list[1][1])),
+                showarrow=False,
+            ),
+            dict(
+                x=6000,
+                y=14000,
+                xref="x1",
+                yref="y3",
+                font=font_ann,
+                text="PCC: " +
+                str(round(coef_list[1][0], 2)) + "<br>p: " +
+                ('{:0.1e}'.format(coef_list[1][1])),
+                showarrow=False,
+            ),
+            dict(
+                x=14000,
+                y=6000,
+                xref="x3",
+                yref="y2",
+                font=font_ann,
+                text="PCC: " +
+                str(round(coef_list[2][0], 2)) + "<br>p: " +
+                ('{:0.1e}'.format(coef_list[2][1])),
+                showarrow=False,
+            ),
+            dict(
+                x=6000,
+                y=14000,
+                xref="x2",
+                yref="y3",
+                font=font_ann,
+                text="PCC: " +
+                str(round(coef_list[2][0], 2)) + "<br>p: " +
+                ('{:0.1e}'.format(coef_list[2][1])),
+                showarrow=False,
+            ),
+
+        ]
+    else:
+        ann = []
+
     axisd = dict(showline=True,
                  zeroline=False,
                  gridcolor='#104752',
-                 #titlefont=dict(color=colors['text'], size=11),
-                 showticklabels=False
-                 )
+                 showticklabels=True)
 
+    # here we build a scatter matrix, and add annotations for each subgraph
     layout = go.Layout(
         dragmode='select',
 
@@ -493,7 +585,8 @@ def display_selected_data(selectedArea, choiceNB):
         yaxis1=dict(axisd),
         yaxis2=dict(axisd),
         yaxis3=dict(axisd),
-        yaxis4=dict(axisd))
+        yaxis4=dict(axisd),
+        annotations=ann)
 
     fig = go.Figure(data=go.Splom(
         dimensions=[dict(label='trees/sq.mile',
@@ -509,7 +602,7 @@ def display_selected_data(selectedArea, choiceNB):
         # showlegend=True,
         marker=dict(color=index_vals,
                     showscale=False,  # colors encode categorical variables
-                    line_color='white', line_width=0.5),
+                    line_color='white', line_width=0.4),
         diagonal=dict(visible=True)
     ), layout=layout
     )
@@ -520,7 +613,6 @@ def display_selected_data(selectedArea, choiceNB):
 #####################################################################################################################
 # rightGraph callback
 #####################################################################################################################
-
 @app.callback(
     Output('rightGraph', 'figure'),
     [
@@ -543,14 +635,14 @@ def display_selected_data(choiceRG, selectedArea, choiceNB):
         title_part = ' boroughs'
         key = 'borough'
 
-    if selectedArea != None:
+    if selectedArea is not None:
         points = selectedArea["points"]
         area_names = [str(point["text"].split("<br")[0]) for point in points]
         df_selected = df[df[key].isin(area_names)]
     else:
         df_selected = df
 
-    if choiceRG == 'land_price':
+    if choiceRG is None or choiceRG == 'land_price':
         data.append({'x': df_selected.sort_values(by=['avg.landprice_thous$/acre'])[key],
                      'y': df_selected.sort_values(by=['avg.landprice_thous$/acre'])['avg.landprice_thous$/acre'],
                      'type': 'bar',
@@ -586,12 +678,11 @@ def display_selected_data(choiceRG, selectedArea, choiceNB):
         title = 'Scatterplot of Properties/sq.mile and Trees/sq.mile by'+title_part
 
     else:
-        if selectedArea != None:
+        if selectedArea is not None:
             # leave only selected areas
             df_selected = df_species[df_species[key].isin(
                 area_names)].sort_values('spc_per', ascending=False)
-            '''others={'ntaname':'others', 'borough': 'others', 'spc_common': 'others', 'count': df_selected.sum(axis=1)['count']-}
-            df_selected = df_selected.append(ignore_index = True)    '''
+
         else:
             df_selected = df_species.sort_values(
                 'spc_per', ascending=False)
