@@ -8,15 +8,15 @@ This is a Dash visualization of NYC trees and properties information. We tried t
 
 1. Clone repository, open a terminal to the app folder
 
-`git clone https://github.com/MarinaOrzechowski/NYC_Trees_Properties.git
+`git clone https://github.com/MarinaOrzechowski/NYC_Trees_Properties.git`
 
-cd NYC_Trees_Properties`
+`cd NYC_Trees_Properties`
 
 2. Create and activate a new virtual environment (recommended) by running the following:
 
-`virtualenv venv
+`virtualenv venv`
 
-venv\scripts\activate`
+`venv\scripts\activate`
 
 3. Install the requirements:
 
