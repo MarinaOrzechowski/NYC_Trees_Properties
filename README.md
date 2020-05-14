@@ -6,14 +6,17 @@ This is a Dash visualization of NYC trees and properties information. We tried t
 ## How to run this app
 (The following instructions apply to Windows command line.)
 
-1. Create an empty folder, open a terminal to the app folder, and clone repository
+1. Clone repository, open a terminal to the app folder
 
-`git clone https://github.com/MarinaOrzechowski/NYC_Trees_Properties.git`
+`git clone https://github.com/MarinaOrzechowski/NYC_Trees_Properties.git
+
+cd NYC_Trees_Properties`
 
 2. Create and activate a new virtual environment (recommended) by running the following:
 
-`virtualenv venv 
-\venv\scripts\activate`
+`virtualenv venv
+
+venv\scripts\activate`
 
 3. Install the requirements:
 
@@ -22,6 +25,8 @@ This is a Dash visualization of NYC trees and properties information. We tried t
 4. Run the app:
 
 `python Map_test.py`
+
+You can run the app on your browser at http://127.0.0.1:8050
 
 ## Demonstration
 
