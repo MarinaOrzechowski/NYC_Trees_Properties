@@ -2,7 +2,7 @@ dash==1.11.0
 dash-core-components==1.9.1
 dash-html-components==1.0.3
 gunicorn==19.9.0
-numpy==1.16.1
+numpy==1.22.0
 pandas==1.0.0
 plotly==4.5.2
 scikit-learn==0.22.1
